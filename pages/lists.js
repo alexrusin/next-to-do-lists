@@ -6,8 +6,12 @@ import { useRouter } from 'next/router';
 const axios = require('axios').default;
 
 
-const Lists = () => {
+const Lists = (props) => {
     const router = useRouter();
+
+    if (!props.isLoggedIn) {
+      router.push('/logout');
+    }
 
     function handleLogout() {
         const token = localStorage.getItem('token');
@@ -38,7 +42,7 @@ const Lists = () => {
             <button className="bg-blue-400 rounded h-8 w-8 font-bold text-white text-sm ml-2">+</button>
         </div>
         <div className="flex items-center ml-auto">
-           
+            <div className="text-lg mr-4 text-blue-100">Welcome {props.name}</div>
             <button 
             className="bg-blue-400 rounded p-2 font-bold text-white text-sm mr-2"
             onClick={handleLogout}
@@ -158,5 +162,37 @@ const Lists = () => {
     </Layout>
     )
 }
+
+Lists.getInitialProps = async ctx => {
+
+    if (typeof(window) === 'undefined') {
+        ctx.res.statusCode = 301;
+        ctx.res.setHeader('Location','/');
+        return {isLoggedIn: true}
+    }
+  
+    const token = localStorage.getItem('token');
+    if (!token) return {isLoggedIn: false}
+  
+    try {
+        const response = await axios.post('/api/get-lists', {token});
+        return {
+            isLoggedIn: true,
+            name: response.data.name
+        }
+    } catch (err) {
+        if (err.response.status = 401) {
+             return {isLoggedIn: false}
+        }
+
+        console.log(err);
+       
+        return {
+            isLoggedIn: true,
+            name: "Undefined"
+        }
+    }
+  
+  }
 
 export default Lists;
