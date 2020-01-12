@@ -3,13 +3,21 @@ import { useRouter } from 'next/router';
 import '../styles/index.css'
 import Layout from '../components/Layout'
 import Link from 'next/link'
+
 const axios = require('axios').default;
 
-const Login = () => {
+const Login = ({isLoggedIn}) => {
+    const router = useRouter();
+
+    if (isLoggedIn) {
+      router.push('/lists');
+    }
+    
+
     const [error, setError] = useState({isError: false, errorMessage: ''});
     let usernameRef = useRef();
     let passwordRef = useRef();
-    const router = useRouter();
+   
 
     async function handleLogin() {
         const username = usernameRef.current.value;
@@ -38,10 +46,14 @@ const Login = () => {
                 password
             });
 
+            if (result.data.token) {
+                localStorage.setItem('token', result.data.token);
+                router.push('/lists');
+            }
+
             router.push('/lists');
 
         } catch (err) {
-            console.log(err);
             setError(prevError => {
                 return {
                     isError: true,
@@ -57,21 +69,23 @@ const Login = () => {
     <div className="flex justify-center px-6 my-12">
       <div className="w-full xl:w-3/4 lg:w-11/12 flex">
         <div
-          className="w-full h-auto bg-gray-400 hidden lg:block lg:w-1/2 bg-cover rounded-l-lg card-image"
+          className="w-full h-auto bg-gray-400 hidden lg:block lg:w-1/2 rounded-l-lg card-image"
         ></div>
         <div className="w-full lg:w-1/2 bg-white p-5 rounded-lg lg:rounded-l-none">
           <h3 className="pt-4 text-2xl text-center">Welcome Back!</h3>
           <form className="px-8 pt-6 pb-8 mb-4 bg-white rounded">
+          {error.isError && <p className="text-xs italic text-red-500 bg-red-200 p-2 rounded">{error.errorMessage}</p>}
             <div className="mb-4">
               <label className="block mb-2 text-sm font-bold text-gray-700">
-                Username
+                Email
               </label>
               <input
                 ref={usernameRef}
                 className="w-full px-3 py-2 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
                 id="username"
                 type="text"
-                placeholder="Username"
+                placeholder="Email"
+                onFocus={()=> setError({isError: false, errorMessage: ''})}
               />
             </div>
             <div className="mb-4">
@@ -84,9 +98,8 @@ const Login = () => {
                 id="password"
                 type="password"
                 placeholder="******************"
+                onFocus={()=> setError({isError: false, errorMessage: ''})}
               />
-
-              {error.isError && <p className="text-xs italic text-red-500">{error.errorMessage}</p>}
             </div>
             <div className="mb-6 text-center">
               <button
@@ -128,6 +141,26 @@ const Login = () => {
       `}</style>
     </Layout>
     )
+}
+
+Login.getInitialProps = async ctx => {
+
+  if (typeof(window) === 'undefined') {
+      ctx.res.statusCode = 301;
+      ctx.res.setHeader('Location','/');
+      return {isLoggedIn: false}
+  }
+
+  const token = localStorage.getItem('token');
+  if (!token) return {isLoggedIn: false}
+
+  try {
+      const response = await axios.post('/api/is-authenticated', {token});
+      return {isLoggedIn: true}
+  } catch (err) {
+      return {isLoggedIn: false}
+  }
+
 }
 
 export default Login;

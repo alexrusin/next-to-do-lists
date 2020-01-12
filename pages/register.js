@@ -7,7 +7,14 @@ import isEmail from 'validator/lib/isEmail'
 
 const axios = require('axios').default
 
-const Register = () => {
+const Register = ({isLoggedIn}) => {
+
+    const router = useRouter();
+
+    if (isLoggedIn) {
+        router.push('/lists');
+    }
+
     const [error, setError] = useState({isError: false, errorMessage: ''});
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
@@ -17,8 +24,6 @@ const Register = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-
-    const router = useRouter();
 
     useEffect(() => {
         if (!email) return;
@@ -81,44 +86,6 @@ const Register = () => {
 
         
     }
-
-    // async function handleRegister() {
-
-    //     if (!username || !password) {
-    //         setError(prevError => {
-    //         return {
-    //             isError: true,
-    //             errorMessage: 'Please provide username and/or password'
-    //         }
-    //         });
-    //         return;
-    //     }
-
-    //     setError(prevError => {
-    //         return {
-    //             isError: false,
-    //             errorMessage: ''
-    //         }
-    //     });
-
-    //     try {
-    //         const result = await axios.post('/api/login', {
-    //             username,
-    //             password
-    //         });
-
-    //         router.push('/lists');
-
-    //     } catch (err) {
-    //         console.log(err);
-    //         setError(prevError => {
-    //             return {
-    //                 isError: true,
-    //                 errorMessage: 'Username and/or password you provided are incorrect'
-    //             }
-    //         });
-    //     }
-    // }
 
     return (
     <Layout> 
@@ -226,5 +193,25 @@ const Register = () => {
     </Layout>
     )
 }
+
+Register.getInitialProps = async ctx => {
+
+    if (typeof(window) === 'undefined') {
+        ctx.res.statusCode = 301;
+        ctx.res.setHeader('Location','/');
+        return {isLoggedIn: false}
+    }
+  
+    const token = localStorage.getItem('token');
+    if (!token) return {isLoggedIn: false}
+  
+    try {
+        const response = await axios.post('/api/is-authenticated', {token});
+        return {isLoggedIn: true}
+    } catch (err) {
+        return {isLoggedIn: false}
+    }
+  
+  }
 
 export default Register;
